@@ -77,6 +77,8 @@ resource "aws_instance" "memory_match" {
   vpc_security_group_ids      = [aws_security_group.memory_match.id]
   associate_public_ip_address = true
 
+  user_data_replace_on_change = true
+
   user_data = <<-EOF
     #!/bin/bash
     set -e
