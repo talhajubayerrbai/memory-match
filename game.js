@@ -4,7 +4,7 @@
   // 8 pairs = 16 cards
   const PAIRS = EMOJIS.slice(0, 8);
 
-  let cards, flipped, matched, locked;
+  let cards, flipped, matched, locked, moves;
 
   function shuffle(arr) {
     const a = arr.slice();
@@ -20,6 +20,8 @@
     flipped = [];
     matched = 0;
     locked = false;
+    moves = 0;
+    document.getElementById('moves').textContent = 'Moves: 0';
 
     const board = document.getElementById('board');
     board.innerHTML = '';
@@ -51,6 +53,8 @@
 
     if (flipped.length === 2) {
       locked = true;
+      moves++;
+      document.getElementById('moves').textContent = 'Moves: ' + moves;
       const [a, b] = flipped;
       if (a.dataset.emoji === b.dataset.emoji) {
         a.classList.add('matched');
@@ -74,6 +78,6 @@
     }
   }
 
-  document.getElementById('restart').addEventListener('click', init);
+  document.getElementById('new-game').addEventListener('click', init);
   init();
 }());
