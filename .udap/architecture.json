@@ -1,0 +1,27 @@
+{
+  "edges": [],
+  "groups": [
+    {
+      "id": "memory-match-dev",
+      "kind": "environment",
+      "name": "memory-match-dev"
+    }
+  ],
+  "nodes": [
+    {
+      "group": "memory-match-dev",
+      "id": "memory_match_ec2",
+      "name": "memory-match",
+      "props": {
+        "instance_type": "t3.micro",
+        "region": "us-east-1"
+      },
+      "type": "service.ec2"
+    }
+  ],
+  "scope": {
+    "id": "svc_01a1122ddabf6989b7aa8ddcaaa7c0f1",
+    "kind": "service"
+  },
+  "version": 1
+}
