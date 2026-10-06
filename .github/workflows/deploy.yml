@@ -1,0 +1,113 @@
+name: Deploy memory-match
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: 'Git revision to deploy'
+        required: false
+      udap_run_id:
+        description: 'UDAP run id'
+        required: false
+
+concurrency:
+  group: deploy-${{ vars.TF_STATE_KEY }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.revision || github.sha }}
+      - name: Check game files present
+        run: |
+          test -f index.html && test -f style.css && test -f game.js
+          echo "Game files OK"
+
+  provision:
+    name: Terraform Apply
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.revision || github.sha }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.0"
+
+      - name: Terraform Init
+        working-directory: infra
+        run: |
+          terraform init -input=false -reconfigure \
+            -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" \
+            -backend-config="key=${{ vars.TF_STATE_KEY }}" \
+            -backend-config="region=${{ vars.AWS_REGION }}"
+
+      - name: Terraform Plan
+        working-directory: infra
+        run: terraform plan -input=false
+
+      - name: Terraform Apply
+        working-directory: infra
+        run: terraform apply -input=false -auto-approve
+
+      - name: Output address
+        working-directory: infra
+        run: |
+          IP=$(terraform output -raw public_ip)
+          echo "Live URL: http://$IP"
+
+  verify:
+    name: Verify HTTP
+    needs: provision
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.revision || github.sha }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.0"
+
+      - name: Terraform Init
+        working-directory: infra
+        run: |
+          terraform init -input=false -reconfigure \
+            -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" \
+            -backend-config="key=${{ vars.TF_STATE_KEY }}" \
+            -backend-config="region=${{ vars.AWS_REGION }}"
+
+      - name: Poll for HTTP 200
+        working-directory: infra
+        run: |
+          IP=$(terraform output -raw public_ip)
+          URL="http://$IP"
+          echo "Polling $URL ..."
+          for i in $(seq 1 30); do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "$URL" || true)
+            if [ "$CODE" = "200" ]; then
+              echo "Live URL: http://$IP"
+              exit 0
+            fi
+            echo "Attempt $i: got $CODE, waiting 10s..."
+            sleep 10
+          done
+          echo "ERROR: service did not return 200 within 5 minutes"
+          exit 1
