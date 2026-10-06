@@ -61,7 +61,7 @@ jobs:
 
       - name: Terraform Apply
         working-directory: infra
-        run: terraform apply -input=false -auto-approve
+        run: terraform apply -input=false -auto-approve -var="git_revision=${{ inputs.revision || github.sha }}"
 
       - name: Output address
         working-directory: infra

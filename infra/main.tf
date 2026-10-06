@@ -85,6 +85,7 @@ resource "aws_instance" "memory_match" {
     # copy game files
     REPO_DIR=/tmp/memory-match
     git clone https://github.com/${var.github_owner}/memory-match.git $REPO_DIR
+    cd $REPO_DIR && git checkout ${var.git_revision}
     cp $REPO_DIR/index.html /usr/share/nginx/html/
     cp $REPO_DIR/style.css  /usr/share/nginx/html/
     cp $REPO_DIR/game.js    /usr/share/nginx/html/
@@ -99,6 +100,11 @@ resource "aws_instance" "memory_match" {
 variable "github_owner" {
   description = "GitHub owner/org that hosts the memory-match repo"
   default     = "talhajubayerrbai"
+}
+
+variable "git_revision" {
+  description = "Git commit SHA to deploy — changing this forces instance replacement"
+  default     = "main"
 }
 
 # ---------- outputs ----------
