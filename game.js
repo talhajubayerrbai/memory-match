@@ -53,6 +53,7 @@
 
     if (flipped.length === 2) {
       locked = true;
+      document.body.classList.add('locked');
       moves++;
       document.getElementById('moves').textContent = 'Moves: ' + moves;
       const [a, b] = flipped;
@@ -63,6 +64,7 @@
         b.classList.remove('flipped');
         flipped = [];
         locked = false;
+        document.body.classList.remove('locked');
         matched++;
         if (matched === PAIRS.length) {
           document.getElementById('status').textContent = '🎉 You win! All pairs matched!';
@@ -73,6 +75,7 @@
           b.classList.remove('flipped');
           flipped = [];
           locked = false;
+          document.body.classList.remove('locked');
         }, 900);
       }
     }
